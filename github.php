@@ -1,11 +1,10 @@
 <?php
 /*
 Plugin Name: Code From Url
-Version: 2.0
-Plugin URI: tba
-Description:
-Author: Jared Barneck (Rhyous)
-Author URI: http://www.rhyous.com
+Version: 1.0
+Description: Visit https://github.com/SnifferNandez/GitHub-Code-Viewer-for-WordPress for detailed instructions.
+Author: Jared Barneck, modified by SnifferNandez
+Author URI: http://sniffer.comparte.tips/
 */
 
 class github {
@@ -35,24 +34,26 @@ class github {
   }
 
   function get_code($text='') {
-    $pattern = '/(CodeFromUrl=["\'][^"\']*["\'])/i';
+    $pattern = '/(\[CodeFromUrl="[^"\']*" lang="[^"\']*"\])/i';
     if (preg_match_all($pattern, $text, $matches)) {
       $urls = [];
       $i = 0;
       foreach($matches[0] as $match) {
-        $urls[$i++] = trim(str_replace('CodeFromUrl=', '', $match), "\"");
+        $urls[$i++] = trim(str_replace('[CodeFromUrl=', '', explode('" lang="',$match)[0]), "\"");
       }
       $this->__loadCache($urls);
 
       foreach($matches[0] as $match) {
-        $url = trim(str_replace('CodeFromUrl=', '', $match), "\"");
+        $url = trim(str_replace('[CodeFromUrl=', '', explode('" lang="',$match)[0]), "\"");
+        $lang = trim(str_replace('"]', '', explode('" lang="',$match)[1]), "\"");
         if (isset($this->cache[$url])) {
           $code = $this->cache[$url];
         } else {
           $code = wp_remote_fopen($url);
-          $code = str_replace('<', '&lt;', $code);
+          //$code = str_replace('<', '&lt;', $code);
           $this->__setCache($url, $code);
         }
+        $code = '['.$lang.']'.$code.'[/'.$lang.']';
         $text = str_replace($match, $code, $text);
       }
     }
@@ -66,7 +67,7 @@ class github {
     if ($results) {
       $old = array();
       foreach($results as $row) {
-        if($row['updated'] < date('Y-m-d H:i:s', strtotime('-1 day'))) {
+        if($row['updated'] < date('Y-m-d H:i:s', strtotime('-10 day'))) {
           $old[] = $row['id'];
         } else {
           $this->cache[$row['url']] = $row['code'];
@@ -89,5 +90,5 @@ class github {
 $github = new github();
 register_activation_hook(__FILE__, array($github, 'install'));
 register_deactivation_hook(__FILE__, array($github, 'uninstall'));
-add_filter('the_content', array($github, 'get_code'), 8);
+add_filter('the_content', array($github, 'get_code'), 7);
 ?>

@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Code From Url
-Version: 1.0
+Version: 1.1
 Description: Visit https://github.com/SnifferNandez/GitHub-Code-Viewer-for-WordPress for detailed instructions.
 Author: Jared Barneck, modified by SnifferNandez
 Author URI: http://sniffer.comparte.tips/
@@ -34,30 +34,39 @@ class github {
   }
 
   function get_code($text='') {
-    $pattern = '/(\[CodeFromUrl="[^"\']*" lang="[^"\']*"\])/i';
+    $pattern = '/(\[CodeFromUrl="[^"\']*"[ ]*(lang="[^"\']*")?[ ]*(opt="[^"]*")?\])/i';
     if (preg_match_all($pattern, $text, $matches)) {
       $urls = [];
       $i = 0;
       foreach($matches[0] as $match) {
-        $urls[$i++] = trim(str_replace('[CodeFromUrl=', '', explode('" lang="',$match)[0]), "\"");
+        $urls[$i++] = trim(explode('"',$match)[1]);
       }
       $this->__loadCache($urls);
-
+      $txtrans = array();
       foreach($matches[0] as $match) {
-        $url = trim(str_replace('[CodeFromUrl=', '', explode('" lang="',$match)[0]), "\"");
-        $lang = trim(str_replace('"]', '', explode('" lang="',$match)[1]), "\"");
+        $url = trim(explode('"',$match)[1]);
+        $lang = explode('" lang="',$match);
+        array_push($lang,"html");
+        $lang = trim(explode('"',$lang[1])[0]);
+        $options = explode('" opt="',$match);
+        array_push($options,"");
+        $options = trim(explode('"',$options[1])[0]);
         if (isset($this->cache[$url])) {
           $code = $this->cache[$url];
         } else {
           $code = wp_remote_fopen($url);
-          //$code = str_replace('<', '&lt;', $code);
+          // Trying to fix like https://github.com/Viper007Bond/syntaxhighlighter/issues/32
+          //$code = str_replace('[', '[[', $code);
+          //$code = str_replace(']', ']]', $code);
+          //$corrections = array ('p' => '((((', ']' => ']]');
           $this->__setCache($url, $code);
         }
-        $code = '['.$lang.']'.$code.'[/'.$lang.']';
-        $text = str_replace($match, $code, $text);
+        $code = '[code lang="'.$lang.'" '.$options.']'.$code.'[/code]';
+        $adjust = array($match => $code);
+        $txtrans = array_merge($txtrans, $adjust);
       }
+      $text = strtr($text,$txtrans);
     }
-
     return $text;
   }
 
@@ -67,7 +76,7 @@ class github {
     if ($results) {
       $old = array();
       foreach($results as $row) {
-        if($row['updated'] < date('Y-m-d H:i:s', strtotime('-10 day'))) {
+        if($row['updated'] < date('Y-m-d H:i:s', strtotime('10 day'))) {
           $old[] = $row['id'];
         } else {
           $this->cache[$row['url']] = $row['code'];

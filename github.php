@@ -61,7 +61,7 @@ class github {
           //$corrections = array ('p' => '((((', ']' => ']]');
           $this->__setCache($url, $code);
         }
-        $code = '[code lang="'.$lang.'" '.$options.']'.$code.'[/code]';
+        $code = '[co'.'de lang="'.$lang.'" '.$options.']'.$code.'[/co'.'de]';
         $adjust = array($match => $code);
         $txtrans = array_merge($txtrans, $adjust);
       }

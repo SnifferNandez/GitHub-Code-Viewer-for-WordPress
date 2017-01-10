@@ -76,7 +76,7 @@ class github {
     if ($results) {
       $old = array();
       foreach($results as $row) {
-        if($row['updated'] < date('Y-m-d H:i:s', strtotime('10 day'))) {
+        if($row['updated'] < date('Y-m-d H:i:s', strtotime('-13 day'))) {
           $old[] = $row['id'];
         } else {
           $this->cache[$row['url']] = $row['code'];
